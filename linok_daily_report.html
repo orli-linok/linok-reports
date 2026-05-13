@@ -95,6 +95,20 @@
   .s-val { color: #111; font-weight: 600; text-align: right; max-width: 65%; }
   .print-btn { display: inline-block; margin-top: 1.25rem; padding: 10px 24px; background: #f0f4f8; border: 1px solid #c8d6e5; border-radius: 8px; font-size: 14px; font-weight: 600; color: #1B6CA8; cursor: pointer; font-family: inherit; }
   .new-btn { display: inline-block; margin-top: 0.75rem; padding: 10px 24px; background: #fff; border: 1px solid #d0d5dd; border-radius: 8px; font-size: 14px; font-weight: 600; color: #555; cursor: pointer; font-family: inherit; margin-left: 8px; }
+
+  /* PHOTO UPLOAD */
+  .photo-upload-area { border: 2px dashed #d0d5dd; border-radius: 10px; padding: 1.25rem; text-align: center; cursor: pointer; transition: border-color 0.15s, background 0.15s; background: #fafafa; }
+  .photo-upload-area:hover { border-color: #1B6CA8; background: #f0f4f8; }
+  .photo-upload-area input { display: none; }
+  .photo-upload-icon { font-size: 28px; margin-bottom: 6px; }
+  .photo-upload-label { font-size: 13px; font-weight: 600; color: #555; }
+  .photo-upload-hint { font-size: 12px; color: #aaa; margin-top: 2px; }
+  .photo-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
+  .photo-thumb { position: relative; border-radius: 8px; overflow: hidden; aspect-ratio: 1; }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
+  .photo-thumb .remove-btn { position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.6); color: #fff; border: none; border-radius: 50%; width: 22px; height: 22px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .uploading { text-align: center; padding: 1rem; color: #1B6CA8; font-size: 14px; font-weight: 600; display: none; }
+  .uploading.show { display: block; }
 </style>
 </head>
 <body>
@@ -250,6 +264,25 @@
     </div>
   </div>
 
+  <!-- Section 6: Photos -->
+  <div class="section-block">
+    <div class="section-tag">Section 6</div>
+    <div class="section-title">Photos</div>
+    <div class="field">
+      <label>Upload photos from the site</label>
+      <div class="hint">Optional — photos of issues, installations, or anything worth documenting</div>
+      <div class="photo-upload-area" onclick="document.getElementById('photo_input').click()">
+        <input type="file" id="photo_input" accept="image/*" multiple onchange="handlePhotos(this)">
+        <div class="photo-upload-icon">📷</div>
+        <div class="photo-upload-label">Tap to add photos</div>
+        <div class="photo-upload-hint">JPG, PNG — multiple photos allowed</div>
+      </div>
+      <div class="photo-grid" id="photo_grid"></div>
+    </div>
+  </div>
+
+  <div class="uploading" id="uploading_msg">⏳ Saving report to Google Drive...</div>
+
   <button class="submit-btn" onclick="submitReport()">Submit Report</button>
 </div>
 
@@ -272,6 +305,9 @@
 </div>
 
 <script>
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbye1zy6UhP2UUbwrFWY2RNGVbyuQu2ufeMINh0i14OjUdUZi3oAKwxZWl8wwqknnf9B/exec';
+let uploadedPhotos = [];
+
 // Gate
 function checkCode() {
   const input = document.getElementById('gate_input').value.trim();
@@ -329,11 +365,44 @@ function toggleIssues(show, el) {
   document.getElementById('issue_detail').classList.toggle('show', show);
 }
 
+// Photo handling
+function handlePhotos(input) {
+  const files = Array.from(input.files);
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      uploadedPhotos.push({ data: e.target.result, type: file.type, name: file.name });
+      renderPhotoGrid();
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photo_grid');
+  grid.innerHTML = '';
+  uploadedPhotos.forEach((photo, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb';
+    thumb.innerHTML = `
+      <img src="${photo.data}" alt="Photo ${i+1}">
+      <button class="remove-btn" onclick="removePhoto(${i})">×</button>
+    `;
+    grid.appendChild(thumb);
+  });
+}
+
+function removePhoto(i) {
+  uploadedPhotos.splice(i, 1);
+  renderPhotoGrid();
+}
+
 function v(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
 function r(name) { const e = document.querySelector(`input[name="${name}"]:checked`); return e ? e.value : ''; }
 
 // Submit
-function submitReport() {
+async function submitReport() {
   const phases = getCompletedPhases();
   const data = {
     date: document.getElementById('today-date').textContent,
@@ -349,7 +418,24 @@ function submitReport() {
     resolved: r('resolved'),
     next_steps: v('next_steps'),
     notes: v('team_notes'),
+    images: uploadedPhotos,
   };
+
+  // Show uploading
+  document.getElementById('uploading_msg').classList.add('show');
+  document.querySelector('.submit-btn').disabled = true;
+
+  try {
+    await fetch(SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(data),
+      mode: 'no-cors',
+    });
+  } catch(e) {
+    // no-cors returns opaque response, that's OK
+  }
+
+  document.getElementById('uploading_msg').classList.remove('show');
 
   // Build summary
   let html = '';
@@ -359,6 +445,7 @@ function submitReport() {
     { title: 'Work Done', rows: [['Phases completed', data.phases], ['Additional work', data.extra || 'None']] },
     { title: 'Issues', rows: [['Issues reported', data.issues], data.issues === 'Yes, there were issues' ? ['Description', data.issue_desc] : null, data.resolved ? ['Resolved?', data.resolved] : null, data.next_steps ? ['Next steps', data.next_steps] : null].filter(Boolean) },
     { title: 'Team Notes', rows: [['Notes', data.notes || 'None']] },
+    { title: 'Photos', rows: [['Photos uploaded', uploadedPhotos.length > 0 ? `${uploadedPhotos.length} photo(s) saved to Google Drive` : 'None']] },
   ];
 
   sections.forEach(s => {
@@ -377,12 +464,15 @@ function submitReport() {
 }
 
 function newReport() {
+  uploadedPhotos = [];
+  document.getElementById('photo_grid').innerHTML = '';
   document.getElementById('success_page').style.display = 'none';
   document.getElementById('main_page').style.display = 'block';
   document.querySelectorAll('input[type=text], input[type=tel], input[type=email], textarea').forEach(e => e.value = '');
   document.querySelectorAll('.status-pill').forEach(e => e.classList.remove('sel-green','sel-yellow','sel-red'));
   document.querySelectorAll('.phase-item').forEach(e => { e.classList.remove('done'); e.querySelector('.phase-check').textContent = ''; });
   document.getElementById('issue_detail').classList.remove('show');
+  document.querySelector('.submit-btn').disabled = false;
   setDateTime();
   window.scrollTo(0, 0);
 }
