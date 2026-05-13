@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LINOK — Daily Field Report</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #1a1a1a; min-height: 100vh; }
+
+  /* GATE */
+  .gate { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1.5rem; }
+  .gate-card { background: #fff; border-radius: 16px; border: 1px solid #e0e4ea; padding: 2.5rem 2rem; max-width: 380px; width: 100%; text-align: center; box-shadow: 0 4px 24px rgba(27,108,168,0.08); }
+  .gate-logo { font-size: 22px; font-weight: 700; color: #1B6CA8; }
+  .gate-logo span { color: #999; font-weight: 400; font-size: 14px; display: block; margin-top: 2px; }
+  .gate-title { font-size: 17px; font-weight: 600; color: #111; margin: 1.25rem 0 6px; }
+  .gate-desc { font-size: 13px; color: #999; margin-bottom: 1.5rem; line-height: 1.6; }
+  .gate-input { width: 100%; padding: 11px 14px; font-size: 15px; border: 1px solid #d0d5dd; border-radius: 10px; background: #fff; color: #1a1a1a; font-family: inherit; outline: none; text-align: center; letter-spacing: 2px; margin-bottom: 10px; transition: border-color 0.15s, box-shadow 0.15s; }
+  .gate-input:focus { border-color: #1B6CA8; box-shadow: 0 0 0 3px rgba(27,108,168,0.12); }
+  .gate-btn { width: 100%; padding: 12px; background: #1B6CA8; color: #fff; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .gate-btn:hover { background: #155a8e; }
+  .gate-error { font-size: 13px; color: #c0392b; margin-top: 8px; min-height: 18px; }
+
+  /* MAIN */
+  .page { max-width: 560px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; display: none; }
+
+  .header { border-bottom: 2.5px solid #1B6CA8; padding-bottom: 1rem; margin-bottom: 1.5rem; }
+  .logo { font-size: 20px; font-weight: 700; color: #1B6CA8; }
+  .logo span { color: #999; font-weight: 400; font-size: 13px; margin-left: 6px; }
+  .doc-title { font-size: 22px; font-weight: 700; color: #111; margin-top: 4px; }
+  .doc-sub { font-size: 13px; color: #999; margin-top: 2px; }
+
+  /* DATE BAR */
+  .date-bar { background: #1B6CA8; border-radius: 10px; padding: 10px 16px; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+  .date-bar .date-label { font-size: 12px; color: rgba(255,255,255,0.7); }
+  .date-bar .date-val { font-size: 15px; font-weight: 600; color: #fff; }
+
+  /* SECTIONS */
+  .section-block { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 1.25rem; margin-bottom: 1rem; }
+  .section-tag { font-size: 10px; font-weight: 700; color: #1B6CA8; text-transform: uppercase; letter-spacing: 1.2px; margin-bottom: 4px; }
+  .section-title { font-size: 16px; font-weight: 700; color: #111; margin-bottom: 1rem; }
+
+  .field { margin-bottom: 1rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: #444; margin-bottom: 5px; }
+  .field .hint { font-size: 12px; color: #aaa; margin-bottom: 5px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 12px; font-size: 14px;
+    border: 1px solid #d0d5dd; border-radius: 8px;
+    background: #fafafa; color: #1a1a1a; font-family: inherit; outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: #1B6CA8; box-shadow: 0 0 0 3px rgba(27,108,168,0.12); background: #fff;
+  }
+  .field textarea { resize: vertical; min-height: 80px; }
+
+  /* STATUS PILLS */
+  .status-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .status-pill { cursor: pointer; padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 600; border: 1.5px solid #d0d5dd; background: #fff; color: #555; transition: all 0.15s; user-select: none; }
+  .status-pill:hover { border-color: #1B6CA8; }
+  .status-pill.sel-green { border-color: #2E7D32; background: #E8F5E9; color: #2E7D32; }
+  .status-pill.sel-yellow { border-color: #F57F17; background: #FFF8E1; color: #E65100; }
+  .status-pill.sel-red { border-color: #C62828; background: #FFEBEE; color: #C62828; }
+  .status-pill input { display: none; }
+
+  /* PHASE CHECKLIST */
+  .phase-list { display: flex; flex-direction: column; gap: 8px; }
+  .phase-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fafafa; cursor: pointer; user-select: none; transition: background 0.15s; }
+  .phase-item:hover { background: #f0f4f8; }
+  .phase-item.done { background: #E8F5E9; border-color: #A5D6A7; }
+  .phase-item.done .phase-check { background: #2E7D32; border-color: #2E7D32; color: #fff; }
+  .phase-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #d0d5dd; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; transition: all 0.15s; }
+  .phase-label { font-size: 14px; font-weight: 500; color: #333; }
+  .phase-item.done .phase-label { color: #2E7D32; }
+
+  /* ISSUE BLOCK */
+  .issue-block { background: #FFEBEE; border: 1px solid #FFCDD2; border-radius: 8px; padding: 1rem; margin-top: 0.75rem; display: none; }
+  .issue-block.show { display: block; }
+
+  /* SUBMIT */
+  .submit-btn { width: 100%; padding: 14px; background: #1B6CA8; color: #fff; border: none; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: 1rem; transition: background 0.15s; }
+  .submit-btn:hover { background: #155a8e; }
+
+  /* SUCCESS */
+  .success { display: none; text-align: center; padding: 3rem 1rem; }
+  .success.show { display: block; }
+  .success-icon { width: 60px; height: 60px; border-radius: 50%; background: #E8F5E9; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem; }
+  .summary-box { background: #fff; border-radius: 12px; border: 1px solid #e5e7eb; padding: 1.25rem; margin-top: 1.5rem; text-align: left; }
+  .summary-section { font-size: 11px; font-weight: 700; color: #1B6CA8; text-transform: uppercase; letter-spacing: 1px; margin: 1rem 0 6px; }
+  .summary-section:first-child { margin-top: 0; }
+  .summary-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid #f0f0f0; gap: 12px; }
+  .summary-row:last-child { border-bottom: none; }
+  .s-label { color: #999; }
+  .s-val { color: #111; font-weight: 600; text-align: right; max-width: 65%; }
+  .print-btn { display: inline-block; margin-top: 1.25rem; padding: 10px 24px; background: #f0f4f8; border: 1px solid #c8d6e5; border-radius: 8px; font-size: 14px; font-weight: 600; color: #1B6CA8; cursor: pointer; font-family: inherit; }
+  .new-btn { display: inline-block; margin-top: 0.75rem; padding: 10px 24px; background: #fff; border: 1px solid #d0d5dd; border-radius: 8px; font-size: 14px; font-weight: 600; color: #555; cursor: pointer; font-family: inherit; margin-left: 8px; }
+</style>
+</head>
+<body>
+
+<!-- GATE -->
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <div class="gate-logo">LINOK <span>Precision Dairy Solutions</span></div>
+    <div class="gate-title">Daily Field Report</div>
+    <div class="gate-desc">Internal use only.<br>Enter your access code to continue.</div>
+    <input class="gate-input" type="password" id="gate_input" placeholder="Access code" onkeydown="if(event.key==='Enter')checkCode()">
+    <button class="gate-btn" onclick="checkCode()">Enter</button>
+    <div class="gate-error" id="gate_error"></div>
+  </div>
+</div>
+
+<!-- MAIN FORM -->
+<div class="page" id="main_page">
+
+  <div class="header">
+    <div class="logo">LINOK <span>Field Operations</span></div>
+    <div class="doc-title">Daily Field Report</div>
+    <div class="doc-sub">Fill in at end of shift — takes under 3 minutes</div>
+  </div>
+
+  <div class="date-bar">
+    <div>
+      <div class="date-label">Report Date</div>
+      <div class="date-val" id="today-date"></div>
+    </div>
+    <div style="text-align:right">
+      <div class="date-label">Local Time</div>
+      <div class="date-val" id="today-time"></div>
+    </div>
+  </div>
+
+  <!-- Section 1: Who -->
+  <div class="section-block">
+    <div class="section-tag">Section 1</div>
+    <div class="section-title">Who & Where</div>
+    <div class="field">
+      <label>Your Name</label>
+      <input type="text" id="ops_name" placeholder="e.g. Orly">
+    </div>
+    <div class="field">
+      <label>Farm / Customer Name</label>
+      <input type="text" id="farm_name" placeholder="e.g. Smith Family Dairy">
+    </div>
+    <div class="field">
+      <label>Contractor on Site</label>
+      <input type="text" id="contractor" placeholder="Name of field technician">
+    </div>
+  </div>
+
+  <!-- Section 2: Overall Status -->
+  <div class="section-block">
+    <div class="section-tag">Section 2</div>
+    <div class="section-title">Overall Session Status</div>
+    <div class="field">
+      <label>How did it go?</label>
+      <div class="status-group">
+        <label class="status-pill" onclick="selectStatus(this,'green')"><input type="radio" name="status" value="✅ All good">✅ All good</label>
+        <label class="status-pill" onclick="selectStatus(this,'yellow')"><input type="radio" name="status" value="⚠️ Some issues">⚠️ Some issues</label>
+        <label class="status-pill" onclick="selectStatus(this,'red')"><input type="radio" name="status" value="🔴 Major problem">🔴 Major problem</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 3: What was done -->
+  <div class="section-block">
+    <div class="section-tag">Section 3</div>
+    <div class="section-title">What Was Done Today</div>
+    <div class="field">
+      <label>Installation phases completed</label>
+      <div class="hint">Tap to mark as done</div>
+      <div class="phase-list">
+        <div class="phase-item" onclick="togglePhase(this)" data-val="Ethernet Cable Trunking">
+          <div class="phase-check"></div>
+          <div class="phase-label">Ethernet Cable Trunking</div>
+        </div>
+        <div class="phase-item" onclick="togglePhase(this)" data-val="Network Setup (UNIFI)">
+          <div class="phase-check"></div>
+          <div class="phase-label">Network Setup (UNIFI)</div>
+        </div>
+        <div class="phase-item" onclick="togglePhase(this)" data-val="MIKA Units Installation">
+          <div class="phase-check"></div>
+          <div class="phase-label">MIKA Units Installation</div>
+        </div>
+        <div class="phase-item" onclick="togglePhase(this)" data-val="RFID System Installation">
+          <div class="phase-check"></div>
+          <div class="phase-label">RFID System Installation</div>
+        </div>
+        <div class="phase-item" onclick="togglePhase(this)" data-val="First Milking Session">
+          <div class="phase-check"></div>
+          <div class="phase-label">First Milking Session</div>
+        </div>
+        <div class="phase-item" onclick="togglePhase(this)" data-val="Dashboard Verification">
+          <div class="phase-check"></div>
+          <div class="phase-label">Dashboard Verification</div>
+        </div>
+        <div class="phase-item" onclick="togglePhase(this)" data-val="Operator Training">
+          <div class="phase-check"></div>
+          <div class="phase-label">Operator Training</div>
+        </div>
+      </div>
+    </div>
+    <div class="field">
+      <label>Additional work done</label>
+      <div class="hint">Anything not listed above</div>
+      <textarea id="extra_work" placeholder="e.g. Replaced a sampler filter, adjusted MIKA mounting height..."></textarea>
+    </div>
+  </div>
+
+  <!-- Section 4: Issues -->
+  <div class="section-block">
+    <div class="section-tag">Section 4</div>
+    <div class="section-title">Issues & Problems</div>
+    <div class="field">
+      <label>Were there any issues?</label>
+      <div class="status-group">
+        <label class="status-pill" id="issues_no" onclick="toggleIssues(false,this)"><input type="radio" name="issues" value="No">No issues</label>
+        <label class="status-pill" id="issues_yes" onclick="toggleIssues(true,this)"><input type="radio" name="issues" value="Yes">Yes, there were issues</label>
+      </div>
+    </div>
+    <div class="issue-block" id="issue_detail">
+      <div class="field">
+        <label>Describe the issue(s)</label>
+        <textarea id="issue_desc" placeholder="What happened? Which system/component was affected?"></textarea>
+      </div>
+      <div class="field">
+        <label>Was it resolved?</label>
+        <div class="status-group">
+          <label class="status-pill" onclick="selectResolved(this,'green')"><input type="radio" name="resolved" value="Yes — resolved on site">✅ Yes, resolved on site</label>
+          <label class="status-pill" onclick="selectResolved(this,'yellow')"><input type="radio" name="resolved" value="Partially resolved">⚠️ Partially resolved</label>
+          <label class="status-pill" onclick="selectResolved(this,'red')"><input type="radio" name="resolved" value="No — needs follow-up">🔴 No, needs follow-up</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Next steps needed</label>
+        <textarea id="next_steps" placeholder="What needs to happen next? Who needs to know?"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Section 5: Notes -->
+  <div class="section-block">
+    <div class="section-tag">Section 5</div>
+    <div class="section-title">Notes for the Team</div>
+    <div class="field">
+      <label>Anything the team should know tomorrow morning?</label>
+      <div class="hint">Customer feedback, observations, things to follow up on</div>
+      <textarea id="team_notes" placeholder="Optional — anything worth flagging for the team..."></textarea>
+    </div>
+  </div>
+
+  <button class="submit-btn" onclick="submitReport()">Submit Report</button>
+</div>
+
+<!-- SUCCESS -->
+<div class="page success" id="success_page">
+  <div class="success-icon">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2E7D32" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+  </div>
+  <div style="font-size:20px; font-weight:700; color:#111; margin-bottom:8px;">Report submitted!</div>
+  <div style="font-size:14px; color:#888; max-width:320px; margin:0 auto;">The team can now see what happened on site tonight.</div>
+
+  <div class="summary-box" id="summary_box"></div>
+
+  <div>
+    <button class="print-btn" onclick="window.print()">Print / Save as PDF</button>
+    <button class="new-btn" onclick="newReport()">New Report</button>
+  </div>
+</div>
+
+<script>
+// Gate
+function checkCode() {
+  const input = document.getElementById('gate_input').value.trim();
+  if (input === 'cowmoo123!') {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('main_page').style.display = 'block';
+    setDateTime();
+  } else {
+    document.getElementById('gate_error').textContent = 'Incorrect access code. Please try again.';
+    document.getElementById('gate_input').value = '';
+  }
+}
+
+// Date/time
+function setDateTime() {
+  const now = new Date();
+  document.getElementById('today-date').textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  document.getElementById('today-time').textContent = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Status pills
+function selectStatus(el, color) {
+  document.querySelectorAll('.status-group .status-pill').forEach(p => {
+    if (p.closest('.status-group') === el.closest('.status-group')) {
+      p.classList.remove('sel-green','sel-yellow','sel-red');
+    }
+  });
+  el.classList.add('sel-' + color);
+  el.querySelector('input').checked = true;
+}
+
+function selectResolved(el, color) {
+  document.querySelectorAll('#issue_detail .status-pill').forEach(p => p.classList.remove('sel-green','sel-yellow','sel-red'));
+  el.classList.add('sel-' + color);
+  el.querySelector('input').checked = true;
+}
+
+// Phase toggle
+function togglePhase(el) {
+  el.classList.toggle('done');
+  el.querySelector('.phase-check').textContent = el.classList.contains('done') ? '✓' : '';
+}
+
+function getCompletedPhases() {
+  return Array.from(document.querySelectorAll('.phase-item.done')).map(el => el.dataset.val);
+}
+
+// Issues toggle
+function toggleIssues(show, el) {
+  document.querySelectorAll('.status-group .status-pill').forEach(p => {
+    if (p.id === 'issues_no' || p.id === 'issues_yes') p.classList.remove('sel-green','sel-red','sel-yellow');
+  });
+  el.classList.add(show ? 'sel-red' : 'sel-green');
+  el.querySelector('input').checked = true;
+  document.getElementById('issue_detail').classList.toggle('show', show);
+}
+
+function v(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+function r(name) { const e = document.querySelector(`input[name="${name}"]:checked`); return e ? e.value : ''; }
+
+// Submit
+function submitReport() {
+  const phases = getCompletedPhases();
+  const data = {
+    date: document.getElementById('today-date').textContent,
+    time: document.getElementById('today-time').textContent,
+    name: v('ops_name'),
+    farm: v('farm_name'),
+    contractor: v('contractor'),
+    status: r('status'),
+    phases: phases.length ? phases.join(', ') : 'None marked',
+    extra: v('extra_work'),
+    issues: r('issues'),
+    issue_desc: v('issue_desc'),
+    resolved: r('resolved'),
+    next_steps: v('next_steps'),
+    notes: v('team_notes'),
+  };
+
+  // Build summary
+  let html = '';
+  const sections = [
+    { title: 'Who & Where', rows: [['Name', data.name], ['Farm', data.farm], ['Contractor', data.contractor]] },
+    { title: 'Session', rows: [['Date', data.date], ['Time', data.time], ['Status', data.status]] },
+    { title: 'Work Done', rows: [['Phases completed', data.phases], ['Additional work', data.extra || 'None']] },
+    { title: 'Issues', rows: [['Issues reported', data.issues], data.issues === 'Yes, there were issues' ? ['Description', data.issue_desc] : null, data.resolved ? ['Resolved?', data.resolved] : null, data.next_steps ? ['Next steps', data.next_steps] : null].filter(Boolean) },
+    { title: 'Team Notes', rows: [['Notes', data.notes || 'None']] },
+  ];
+
+  sections.forEach(s => {
+    const filled = s.rows.filter(r => r && r[1]);
+    if (!filled.length) return;
+    html += `<div class="summary-section">${s.title}</div>`;
+    filled.forEach(row => {
+      html += `<div class="summary-row"><span class="s-label">${row[0]}</span><span class="s-val">${row[1]}</span></div>`;
+    });
+  });
+
+  document.getElementById('summary_box').innerHTML = html;
+  document.getElementById('main_page').style.display = 'none';
+  document.getElementById('success_page').style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+function newReport() {
+  document.getElementById('success_page').style.display = 'none';
+  document.getElementById('main_page').style.display = 'block';
+  document.querySelectorAll('input[type=text], input[type=tel], input[type=email], textarea').forEach(e => e.value = '');
+  document.querySelectorAll('.status-pill').forEach(e => e.classList.remove('sel-green','sel-yellow','sel-red'));
+  document.querySelectorAll('.phase-item').forEach(e => { e.classList.remove('done'); e.querySelector('.phase-check').textContent = ''; });
+  document.getElementById('issue_detail').classList.remove('show');
+  setDateTime();
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>
