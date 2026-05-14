@@ -161,6 +161,16 @@
       <label>Contractor on Site</label>
       <input type="text" id="contractor" placeholder="Name of field technician">
     </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+      <div class="field" style="margin-bottom:0;">
+        <label>Shift Start</label>
+        <input type="time" id="shift_start">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Shift End</label>
+        <input type="time" id="shift_end">
+      </div>
+    </div>
   </div>
 
   <!-- Section 2: Overall Status -->
@@ -410,6 +420,8 @@ async function submitReport() {
     name: v('ops_name'),
     farm: v('farm_name'),
     contractor: v('contractor'),
+    shift_start: v('shift_start'),
+    shift_end: v('shift_end'),
     status: r('status'),
     phases: phases.length ? phases.join(', ') : 'None marked',
     extra: v('extra_work'),
